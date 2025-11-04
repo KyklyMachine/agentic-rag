@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from document.model import Document
+from src.document.model import Document
 
 from .model import DocumentsSearchResult, SearchParams
 
 
-class IndexRepository(ABC):
+class VectorDBRepository(ABC):
     @abstractmethod
-    async def search_documents(self, index: str, querry: str, search_params: SearchParams) -> DocumentsSearchResult: ...
+    async def search_documents(self, index: str, query: list[float], search_params: SearchParams) -> DocumentsSearchResult: ...
 
     @abstractmethod
     async def get_documents(self, index: str, search_params: SearchParams) -> list[Document]: ...
@@ -27,4 +27,3 @@ class IndexRepository(ABC):
 
     @abstractmethod
     async def delete_index(self, index: str) -> None: ...
-

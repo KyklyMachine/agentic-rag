@@ -1,7 +1,8 @@
 from typing import Optional
 
-from document.model import Document
 from pydantic import BaseModel, Field
+
+from src.document.model import Document
 
 
 class Index(BaseModel):

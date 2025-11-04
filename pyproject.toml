@@ -4,4 +4,13 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "dotenv>=0.9.9",
+    "fastapi>=0.121.0",
+    "langchain>=1.0.3",
+    "langgraph>=1.0.2",
+    "numpy>=2.3.4",
+    "pydantic>=2.12.3",
+    "qdrant-client>=1.15.1",
+    "uvicorn>=0.38.0",
+]

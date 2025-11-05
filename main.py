@@ -5,6 +5,7 @@ from fastapi.concurrency import asynccontextmanager
 
 from src.config import Config
 from src.index.repository_impl import QdrantVectorDB
+from src.router import router
 
 load_dotenv()
 
@@ -21,4 +22,5 @@ async def lifespan(app: FastAPI):
 
 if __name__ == "__main__":
     app = FastAPI(lifespan=lifespan)
+    app.include_router(router)
     uvicorn.run(app=app)

@@ -7,6 +7,7 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.http.models.models import ScoredPoint
 from qdrant_client.models import Distance, VectorParams
 
+from src.document.model import Payload
 from src.embeddings.dependency import EmbedderDep
 from src.index.exceptions import IndexIsNotExist
 from src.index.model import Document, DocumentsSearchResult, SearchItem, SearchParams
@@ -26,7 +27,7 @@ class QdrantVectorDB(VectorDBRepository):
         )
 
     async def search_documents(self, index_name: str, query: str, search_params: SearchParams, embedder: EmbedderDep) -> DocumentsSearchResult: 
-        embedded_document: Document = (await embedder.invoke([Document(content=query)]))[0]
+        embedded_document: Document = (await embedder.invoke([Document(payload=Payload(content=query))]))[0]
         if not embedded_document.embedding: 
             raise Exception()
         query_embedding: list[float] = embedded_document.embedding
@@ -45,9 +46,8 @@ class QdrantVectorDB(VectorDBRepository):
                 score=item.score,
                 document=Document(
                     id=UUID(str(item.id)),
-                    content=item.payload.get("text", ""),
+                    payload=Payload(content=item.payload.get("content", "")),
                     embedding=embedding,
-                    metadata={}
                     )
                 )
             search_items.append(search_item)
@@ -70,9 +70,8 @@ class QdrantVectorDB(VectorDBRepository):
             documents.append(
                 Document(
                     id=UUID(str(raw_doc.id)),
-                    content=raw_doc.payload.get("text", ""),
+                    payload=Payload(content=raw_doc.payload.get("content", "")),
                     embedding=embedding,
-                    metadata={}
                 )
             )
         return documents
@@ -88,7 +87,7 @@ class QdrantVectorDB(VectorDBRepository):
                     models.PointStruct(
                         id=str(document.id),
                         vector=document.embedding, 
-                        payload={"text": document.content, "metadata": document.metadata},
+                        payload=document.payload.model_dump(),
                     )
                 ],
             )

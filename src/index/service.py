@@ -6,7 +6,6 @@ from .dependency import SearchParamDep, VectorDBDep
 from .model import Document
 
 # TODO: 2) нужно сделать отдельный dep для параметров поиска в индексе
-# TODO: 3) нужно сделать типизацию для metadata внутри индекса
 # TODO: 4) нужно сделать обработку ошибок если нет инфры (например, qdrant)
 # TODO: 5) добавить ответы при удаче запросов
 # TODO: 6) привязать к индексу эмбеддер

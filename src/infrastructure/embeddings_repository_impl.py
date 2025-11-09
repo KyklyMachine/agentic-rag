@@ -18,7 +18,7 @@ class QwenEmbedder(Embedder):
             )
 
     async def invoke(self, documents: list[Document], model_name: Optional[str]=None) -> list[Document]: 
-        contents: list[str] = [document.content for document in documents]
+        contents: list[str] = [document.payload.content for document in documents]
         model = ""
         if "EMBEDDER_MODEL" in os.environ and not model_name:
             model = os.environ.get("EMBEDDER_MODEL", "")

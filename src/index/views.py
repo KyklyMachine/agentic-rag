@@ -2,6 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
+from src.embeddings.dependency import EmbedderDep
+
 from .dependency import SearchParamDep, VectorDBDep
 from .exceptions import IndexIsNotExist
 from .model import Document
@@ -29,16 +31,16 @@ async def get_topics(vector_db: VectorDBDep, search_params: SearchParamDep, inde
     return await IndexService().get_topics(vector_db=vector_db, search_params=search_params, index_name=index_name)
     
 @router.post("/{index_name}/search")
-async def search_topics(vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str, query: list[float]):
-    return await IndexService().search_topics(vector_db=vector_db, search_params=search_params, index_name=index_name, query=query)
+async def search_topics(vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str, query: str, embedder: EmbedderDep):
+    return await IndexService().search_topics(vector_db=vector_db, search_params=search_params, index_name=index_name, query=query, embedder=embedder)
 
 @router.post("/{index_name}/topic")
-async def add_topic(vector_db: VectorDBDep, index_name: str, topic: Document) -> None:
+async def add_topic(vector_db: VectorDBDep, index_name: str, document: Document, embedder: EmbedderDep) -> None:
     try:
-        return await IndexService().add_topic(vector_db=vector_db, index_name=index_name, topic=topic)
+        return await IndexService().add_topic(vector_db=vector_db, index_name=index_name, document=document, embedder=embedder)
     except IndexIsNotExist as unexp_resp:
         raise HTTPException(status_code=404, detail=unexp_resp)
 
 @router.delete("/{index_name}/topic")
-async def delete_topic(vector_db: VectorDBDep, index_name: str, topics_ids: list[UUID]):
-    return await IndexService().delete_topic(vector_db, index_name=index_name, topics_ids=topics_ids)
+async def delete_topic(vector_db: VectorDBDep, index_name: str, documents_ids: list[UUID]):
+    return await IndexService().delete_topic(vector_db, index_name=index_name, documents_ids=documents_ids)

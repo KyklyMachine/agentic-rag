@@ -1,3 +1,4 @@
+from typing import cast
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -39,14 +40,13 @@ class QdrantVectorDB(VectorDBRepository):
         for item in scored_points:
             if not item.payload:
                 raise Exception("Error Search Qdrant: item.payload is None!")
-            # if not isinstance(item.vector, list):
-            #     raise Exception("Error Search Qdrant: item.vector is not list[float]!")
+            embedding = cast(list[float], item.vector)
             search_item = SearchItem(
-                score=item.score, 
+                score=item.score,
                 document=Document(
-                    id=UUID(item.id), 
-                    content=item.payload.get("text", ""), 
-                    embedding=item.vector,  # type: ignore
+                    id=UUID(str(item.id)),
+                    content=item.payload.get("text", ""),
+                    embedding=embedding,
                     metadata={}
                     )
                 )
@@ -65,11 +65,13 @@ class QdrantVectorDB(VectorDBRepository):
         for raw_doc in raw_documents:
             if not raw_doc.payload:
                 raise Exception("Error Search Qdrant: item.payload is None!")
+            
+            embedding = cast(list[float], raw_doc.vector)
             documents.append(
                 Document(
                     id=UUID(str(raw_doc.id)),
-                    content=raw_doc.payload.get("text", ""), 
-                    embedding=raw_doc.vector,  # type: ignore
+                    content=raw_doc.payload.get("text", ""),
+                    embedding=embedding,
                     metadata={}
                 )
             )

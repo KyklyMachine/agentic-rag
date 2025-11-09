@@ -21,16 +21,16 @@ class IndexService:
     async def delete_index(self, vector_db: VectorDBDep, index_name: str) -> None:
         return await vector_db.delete_index(index_name=index_name)
 
-    async def get_topics(self, vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str) -> list[Document]:
+    async def get_documents(self, vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str) -> list[Document]:
         return await vector_db.get_documents(index_name=index_name, search_params=search_params)
     
-    async def search_topics(self, vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str, query: str, embedder: EmbedderDep) -> DocumentsSearchResult:
+    async def search_documents(self, vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str, query: str, embedder: EmbedderDep) -> DocumentsSearchResult:
         return await vector_db.search_documents(index_name=index_name, search_params=search_params, query=query, embedder=embedder)
     
-    async def add_topic(self, vector_db: VectorDBDep, index_name: str, document: Document, embedder: EmbedderDep) -> None:
+    async def add_documents(self, vector_db: VectorDBDep, index_name: str, document: Document, embedder: EmbedderDep) -> None:
         if not document.embedding:
             document = (await embedder.invoke([document]))[0]
         await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
     
-    async def delete_topic(self, vector_db: VectorDBDep, index_name: str, documents_ids: list[UUID]) -> None:
+    async def delete_documents(self, vector_db: VectorDBDep, index_name: str, documents_ids: list[UUID]) -> None:
         await vector_db.delete_documents(index_name=index_name, documents_ids=documents_ids)

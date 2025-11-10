@@ -10,7 +10,13 @@ from qdrant_client.models import Distance, VectorParams
 from src.document.model import Payload
 from src.embeddings.dependency import EmbedderDep
 from src.index.exceptions import IndexIsNotExist
-from src.index.model import Document, DocumentsSearchResult, SearchItem, SearchParams
+from src.index.model import (
+    Document,
+    DocumentsSearchResult,
+    IndexOperationResult,
+    SearchItem,
+    SearchParams,
+)
 from src.index.repository import VectorDBRepository
 
 
@@ -76,7 +82,7 @@ class QdrantVectorDB(VectorDBRepository):
             )
         return documents
 
-    async def add_documents(self, index_name: str, document: Document, embedder: EmbedderDep) -> None: 
+    async def add_documents(self, index_name: str, document: Document, embedder: EmbedderDep) -> IndexOperationResult: 
         if not document.embedding:
             raise Exception()
         try:
@@ -91,22 +97,26 @@ class QdrantVectorDB(VectorDBRepository):
                     )
                 ],
             )
+            return IndexOperationResult(operation="add_documents", ids=[str(document.id)])
         except UnexpectedResponse as unexp_resp:
             raise IndexIsNotExist(unexp_resp)
 
-    async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> None: 
+    async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: 
         await self._client.delete(collection_name=index_name, points_selector=[str(id) for id in documents_ids])
+        return IndexOperationResult(operation="delete_documents", ids=list(map(lambda x: str(x), documents_ids)))
 
     async def get_indexes(self) -> list[str]:
         indexes = await self._client.get_collections()
         indexes = [index.name for index in indexes.collections]
         return indexes
 
-    async def add_index(self, index_name: str) -> None: 
+    async def add_index(self, index_name: str) -> IndexOperationResult: 
         await self._client.create_collection(
             collection_name=index_name,
             vectors_config=VectorParams(size=4096, distance=Distance.COSINE)
         )
+        return IndexOperationResult(operation="add_index", ids=[index_name])
 
-    async def delete_index(self, index_name: str) -> None:
+    async def delete_index(self, index_name: str) -> IndexOperationResult:
         await self._client.delete_collection(collection_name=index_name)
+        return IndexOperationResult(operation="delete_index", ids=[index_name])

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -21,3 +21,8 @@ class DocumentsSearchResult(BaseModel):
     index_name: str
     search_params: SearchParams
     items: list[SearchItem]
+
+class IndexOperationResult(BaseModel):
+    status: Literal["acknowledged"] = Field(default="acknowledged")
+    operation: Literal["delete_index", "add_index", "delete_documents", "add_documents"]
+    ids: list[str]

@@ -3,19 +3,19 @@ from uuid import UUID
 
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient, models
-from qdrant_client.http.exceptions import UnexpectedResponse
+from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 from qdrant_client.http.models.models import ScoredPoint
 from qdrant_client.models import Distance, VectorParams
 
 from src.document.model import Payload
 from src.embeddings.dependency import EmbedderDep
-from src.index.exceptions import IndexIsNotExist
+from src.index.dependency import SearchParamDep, VectorSearchParamDep
+from src.index.exceptions import IndexIsNotExist, ServiceUnavaliable
 from src.index.model import (
     Document,
     DocumentsSearchResult,
     IndexOperationResult,
     SearchItem,
-    SearchParams,
 )
 from src.index.repository import VectorDBRepository
 
@@ -32,7 +32,7 @@ class QdrantVectorDB(VectorDBRepository):
             url=config.url
         )
 
-    async def search_documents(self, index_name: str, query: str, search_params: SearchParams, embedder: EmbedderDep) -> DocumentsSearchResult: 
+    async def search_documents(self, index_name: str, query: str, search_params: VectorSearchParamDep, embedder: EmbedderDep) -> DocumentsSearchResult: 
         embedded_document: Document = (await embedder.invoke([Document(payload=Payload(content=query))]))[0]
         if not embedded_document.embedding: 
             raise Exception()
@@ -59,7 +59,7 @@ class QdrantVectorDB(VectorDBRepository):
             search_items.append(search_item)
         return DocumentsSearchResult(index_name=index_name, search_params=search_params, items=search_items)
 
-    async def get_documents(self, index_name: str, search_params: SearchParams) -> list[Document]: 
+    async def get_documents(self, index_name: str, search_params: SearchParamDep) -> list[Document]: 
         raw_documents, _ = await self._client.scroll(
             collection_name=index_name, 
             limit=search_params.limit, 
@@ -100,23 +100,37 @@ class QdrantVectorDB(VectorDBRepository):
             return IndexOperationResult(operation="add_documents", ids=[str(document.id)])
         except UnexpectedResponse as unexp_resp:
             raise IndexIsNotExist(unexp_resp)
+        except ResponseHandlingException:
+            raise ServiceUnavaliable()
 
     async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: 
-        await self._client.delete(collection_name=index_name, points_selector=[str(id) for id in documents_ids])
-        return IndexOperationResult(operation="delete_documents", ids=list(map(lambda x: str(x), documents_ids)))
+        try:
+            await self._client.delete(collection_name=index_name, points_selector=[str(id) for id in documents_ids])
+            return IndexOperationResult(operation="delete_documents", ids=list(map(lambda x: str(x), documents_ids)))
+        except ResponseHandlingException:
+            raise ServiceUnavaliable()
 
     async def get_indexes(self) -> list[str]:
-        indexes = await self._client.get_collections()
-        indexes = [index.name for index in indexes.collections]
-        return indexes
+        try:
+            indexes = await self._client.get_collections()
+            indexes = [index.name for index in indexes.collections]
+            return indexes
+        except ResponseHandlingException:
+            raise ServiceUnavaliable()
 
     async def add_index(self, index_name: str) -> IndexOperationResult: 
-        await self._client.create_collection(
-            collection_name=index_name,
-            vectors_config=VectorParams(size=4096, distance=Distance.COSINE)
-        )
-        return IndexOperationResult(operation="add_index", ids=[index_name])
+        try:
+            await self._client.create_collection(
+                collection_name=index_name,
+                vectors_config=VectorParams(size=4096, distance=Distance.COSINE)
+            )
+            return IndexOperationResult(operation="add_index", ids=[index_name])
+        except ResponseHandlingException:
+            raise ServiceUnavaliable()
 
     async def delete_index(self, index_name: str) -> IndexOperationResult:
-        await self._client.delete_collection(collection_name=index_name)
-        return IndexOperationResult(operation="delete_index", ids=[index_name])
+        try:
+            await self._client.delete_collection(collection_name=index_name)
+            return IndexOperationResult(operation="delete_index", ids=[index_name])
+        except ResponseHandlingException:
+            raise ServiceUnavaliable()

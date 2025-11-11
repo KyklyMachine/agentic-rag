@@ -13,13 +13,17 @@ class SearchParams(BaseModel):
     offset: int = Field(ge=0, default=0)
     limit: int = Field(ge=1, le=100, default=5)
 
+class VectorSearchParam(BaseModel):
+    offset: int = Field(ge=0, default=0)
+    limit: int = Field(ge=0, le=100, default=4)
+
 class SearchItem(BaseModel):
     document: Document
     score: float
 
 class DocumentsSearchResult(BaseModel):
     index_name: str
-    search_params: SearchParams
+    search_params: VectorSearchParam
     items: list[SearchItem]
 
 class IndexOperationResult(BaseModel):

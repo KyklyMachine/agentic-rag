@@ -2,8 +2,9 @@ from uuid import UUID
 
 from ..embeddings.dependency import EmbedderDep
 from ..index.model import DocumentsSearchResult
-from .dependency import SearchParamDep, VectorDBDep, VectorSearchParamDep
+from .dependency import VectorDBDep
 from .model import Document, IndexOperationResult
+from .repository import SearchParamDep, VectorSearchParamDep
 
 # TODO: 6) привязать к индексу эмбеддер
 # TODO: 7) Не учитывается тот момент, что индекса или документа может не быть, когда мы его во вьюхе удаляем. Нужно в респонзе прямо писать про это
@@ -14,7 +15,7 @@ class IndexService:
         return await vector_db.get_indexes()
     
     async def add_index(self, vector_db: VectorDBDep, index_name: str) -> IndexOperationResult:
-        return await vector_db.add_index(index_name=index_name)
+        return await vector_db.create_index(index_name=index_name)
     
     async def delete_index(self, vector_db: VectorDBDep, index_name: str) -> IndexOperationResult:
         return await vector_db.delete_index(index_name=index_name)

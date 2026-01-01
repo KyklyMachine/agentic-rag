@@ -1,9 +1,22 @@
 from abc import ABC, abstractmethod
+from typing import Annotated
 from uuid import UUID
 
+from fastapi import Depends
+
 from ..embeddings.dependency import EmbedderDep
-from .dependency import SearchParamDep, VectorSearchParamDep
-from .model import Document, DocumentsSearchResult, IndexOperationResult
+
+# from .dependency import SearchParamDep, VectorSearchParamDep
+from .model import (
+    Document,
+    DocumentsSearchResult,
+    IndexOperationResult,
+    SearchParams,
+    VectorSearchParam,
+)
+
+SearchParamDep = Annotated[SearchParams, Depends(SearchParams)]
+VectorSearchParamDep = Annotated[VectorSearchParam, Depends(VectorSearchParam)]
 
 
 class VectorDBRepository(ABC):
@@ -23,7 +36,7 @@ class VectorDBRepository(ABC):
     async def get_indexes(self) -> list[str]: ...
 
     @abstractmethod
-    async def add_index(self, index_name: str) -> IndexOperationResult: ...
+    async def create_index(self, index_name: str) -> IndexOperationResult: ...
 
     @abstractmethod
     async def delete_index(self, index_name: str) -> IndexOperationResult: ...

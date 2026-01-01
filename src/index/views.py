@@ -5,13 +5,14 @@ from fastapi import APIRouter, HTTPException
 from src.embeddings.dependency import EmbedderDep
 from src.index.model import DocumentsSearchResult
 
-from .dependency import SearchParamDep, VectorDBDep, VectorSearchParamDep
+from .dependency import VectorDBDep
 from .exceptions import (
     IndexIsNotExist,
     ServiceUnavaliable,
     service_unavaliable_http_exception,
 )
 from .model import Document, IndexOperationResult
+from .repository import SearchParamDep, VectorSearchParamDep
 from .service import IndexService
 
 router = APIRouter(prefix="/index", tags=["index"])

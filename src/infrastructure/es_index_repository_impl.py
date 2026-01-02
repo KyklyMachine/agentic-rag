@@ -1,4 +1,3 @@
-from typing import cast
 from uuid import UUID
 
 from elasticsearch import AsyncElasticsearch
@@ -64,24 +63,31 @@ class ESVectorDB(VectorDBRepository):
         return DocumentsSearchResult(index_name=index_name, search_params=search_params, items=search_items)
 
     async def get_documents(self, index_name: str, search_params: SearchParamDep) -> list[Document]: 
-        raw_documents = await self._client.search(
-            index=index_name,
-            body={
+        
+        body = {
                 "query": {
                     "match_all": {}
                 },
                 "size": search_params.limit
             }
+        
+        if not search_params.return_embeddings:
+            body["_source"] = {
+                "excludes": ["embedding"]
+            }
+        
+        raw_documents = await self._client.search(
+            index=index_name,
+            body=body,
         )
         documents = []
         for hit in raw_documents["hits"]["hits"]:
             source = hit["_source"]
-            embedding = cast(list[float], source["embedding"])
             documents.append(
                 Document(
-                    id=UUID(str(hit["_id"])),
-                    content=source["content"],
-                    embedding=embedding,
+                    id=UUID(str(hit.get("_id", None))),
+                    content=source.get("content", None),
+                    embedding=source.get("embedding", None),
                 )
             )
         return documents

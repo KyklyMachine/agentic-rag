@@ -54,7 +54,7 @@ async def search_documents(vector_db: VectorDBDep, search_params: VectorSearchPa
         raise service_unavaliable_http_exception
 
 @router.post("/{index_name}/documents")
-async def add_documents(vector_db: VectorDBDep, index_name: str, document: Document, embedder: EmbedderDep) -> IndexOperationResult:
+async def add_documents(index_name: str, document: Document, embedder: EmbedderDep, vector_db: VectorDBDep) -> IndexOperationResult:
     try:
         return await IndexService().add_documents(vector_db=vector_db, index_name=index_name, document=document, embedder=embedder)
     except IndexIsNotExist as unexp_resp:

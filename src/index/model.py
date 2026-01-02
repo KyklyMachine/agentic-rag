@@ -12,6 +12,7 @@ class Index(BaseModel):
 class SearchParams(BaseModel):
     offset: int = Field(ge=0, default=0)
     limit: int = Field(ge=1, le=100, default=5)
+    return_embeddings: bool = Field(default=True)
 
 class VectorSearchParam(BaseModel):
     offset: int = Field(ge=0, default=0)

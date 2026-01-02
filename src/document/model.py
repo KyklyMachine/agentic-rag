@@ -5,14 +5,14 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class Metadata(BaseModel):
-    source: str = Field(default="", description="Источник документа")
+    source: Optional[str] = Field(default=None, description="Источник документа")
     tags: list[str] = Field(default_factory=list, description="Теги для категоризации")
 
 class Document(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     
-    title: str = Field(default="", description="Заголовок документа")
-    context: str = Field(default="", description="Контекст для понимания документа")
+    title: Optional[str] = Field(default=None, description="Заголовок документа")
+    context: Optional[str] = Field(default=None, description="Контекст для понимания документа")
     content: str = Field(..., description="Основной текст документа")
     
     embedding_text: Optional[str] = Field(default=None, description="Текст использованный для построения эмбеддинга (title + context + text)")

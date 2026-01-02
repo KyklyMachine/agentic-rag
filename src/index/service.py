@@ -26,10 +26,27 @@ class IndexService:
     async def search_documents(self, vector_db: VectorDBDep, search_params: VectorSearchParamDep, index_name: str, query: str, embedder: EmbedderDep) -> DocumentsSearchResult:
         return await vector_db.search_documents(index_name=index_name, search_params=search_params, query=query, embedder=embedder)
     
-    async def add_documents(self, vector_db: VectorDBDep, index_name: str, document: Document, embedder: EmbedderDep) -> IndexOperationResult:
-        if not document.embedding:
-            document = (await embedder.invoke([document]))[0]
-        return await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
+    async def add_documents(self, vector_db: VectorDBDep, index_name: str, documents: list[Document], embedder: EmbedderDep) -> IndexOperationResult:
+        err_docs = []
+        error_details = []
+
+        for document in documents:
+            try:
+                if not document.embedding:
+                    document = (await embedder.invoke([document]))[0]
+                await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
+            except Exception as e:
+                err_docs.append(document)
+                error_details.append({
+                    "document_id": str(document.id),
+                    "error_type": type(e).__name__,
+                    "message": str(e)
+                })
+        return IndexOperationResult(
+            status="acknowledged",
+            operation="add_documents",
+            errors={"err_documents": err_docs, "error_details": error_details} if err_docs else None
+        )
     
     async def delete_documents(self, vector_db: VectorDBDep, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult:
         return await vector_db.delete_documents(index_name=index_name, documents_ids=documents_ids)

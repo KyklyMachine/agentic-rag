@@ -30,7 +30,8 @@ class DocumentsSearchResult(BaseModel):
 class IndexOperationResult(BaseModel):
     status: Literal["acknowledged"] = Field(default="acknowledged")
     operation: Literal["delete_index", "add_index", "delete_documents", "add_documents"]
-    ids: list[str]
+    result_description: Optional[dict] = Field(default=None, description="Dictionary with result details")
+    errors: Optional[dict] = Field(default=None, description="Dictionary of errors, where key is document id and value is error message")
 
 class IndexInfo(BaseModel):
     name: str

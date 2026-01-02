@@ -6,6 +6,7 @@ from src.embeddings.dependency import EmbedderDep
 from src.index.model import DocumentsSearchResult
 
 from .dependency import VectorDBDep
+from .dto import AddDocumentsRequest
 from .exceptions import (
     IndexIsNotExist,
     ServiceUnavaliable,
@@ -54,9 +55,9 @@ async def search_documents(vector_db: VectorDBDep, search_params: VectorSearchPa
         raise service_unavaliable_http_exception
 
 @router.post("/{index_name}/documents")
-async def add_documents(index_name: str, document: Document, embedder: EmbedderDep, vector_db: VectorDBDep) -> IndexOperationResult:
+async def add_documents(index_name: str, request: AddDocumentsRequest, embedder: EmbedderDep, vector_db: VectorDBDep) -> IndexOperationResult:
     try:
-        return await IndexService().add_documents(vector_db=vector_db, index_name=index_name, document=document, embedder=embedder)
+        return await IndexService().add_documents(vector_db=vector_db, index_name=index_name, documents=request.to_document_model(), embedder=embedder)
     except IndexIsNotExist as unexp_resp:
         raise HTTPException(status_code=404, detail=unexp_resp)
     except ServiceUnavaliable:

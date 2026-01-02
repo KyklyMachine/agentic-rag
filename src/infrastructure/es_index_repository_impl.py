@@ -3,7 +3,9 @@ from uuid import UUID
 from elasticsearch import AsyncElasticsearch
 from pydantic import BaseModel
 
+from src.document.model import Metadata
 from src.embeddings.dependency import EmbedderDep
+from src.index.exceptions import InconsistentIndex
 from src.index.model import (
     Document,
     DocumentsSearchResult,
@@ -59,12 +61,23 @@ class ESVectorDB(VectorDBRepository):
         search_items: list[SearchItem] = []
         for hit in scored_points["hits"]["hits"]:
             source = hit["_source"]
+            if "_id" not in hit:
+                raise InconsistentIndex("_id not in hit")
+            if "content" not in source:
+                raise InconsistentIndex("content not in source")
+            if "metadata" not in source:
+                raise InconsistentIndex("metadata not in source")
+
             search_item = SearchItem(
                 score=hit["_score"],
                 document=Document(
                     id=UUID(str(hit.get("_id", None))),
+                    title=source.get("title", None),
+                    context=source.get("context", None),
                     content=source.get("content", None),
+                    embedding_text=source.get("embedding_text", None),
                     embedding=source.get("embedding", None),
+                    metadata=source.get("metadata", Metadata())
                     )
                 )
             search_items.append(search_item)
@@ -91,11 +104,21 @@ class ESVectorDB(VectorDBRepository):
         documents = []
         for hit in raw_documents["hits"]["hits"]:
             source = hit["_source"]
+            if "_id" not in hit:
+                raise InconsistentIndex("_id not in hit")
+            if "content" not in source:
+                raise InconsistentIndex("content not in source")
+            if "metadata" not in source:
+                raise InconsistentIndex("metadata not in source")
             documents.append(
                 Document(
                     id=UUID(str(hit.get("_id", None))),
+                    title=source.get("title", None),
+                    context=source.get("context", None),
                     content=source.get("content", None),
+                    embedding_text=source.get("embedding_text", None),
                     embedding=source.get("embedding", None),
+                    metadata=source.get("metadata", Metadata())
                 )
             )
         return documents
@@ -119,12 +142,12 @@ class ESVectorDB(VectorDBRepository):
                 }
             }
         )
-        return IndexOperationResult(operation="add_documents", ids=[str(document.id)])
+        return IndexOperationResult(operation="add_documents")
 
     async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: 
         for doc_id in documents_ids:
             await self._client.delete(index=index_name, id=str(doc_id))
-        return IndexOperationResult(operation="delete_documents", ids=list(map(lambda x: str(x), documents_ids)))
+        return IndexOperationResult(operation="delete_documents")
 
     async def get_indexes(self) -> list[IndexInfo]:
         response = await self._client.cat.indices(format='json', h=['index', 'docs.count'])
@@ -204,8 +227,8 @@ class ESVectorDB(VectorDBRepository):
                 }
             }
         )
-        return IndexOperationResult(operation="add_index", ids=[index_name])
+        return IndexOperationResult(operation="add_index")
 
     async def delete_index(self, index_name: str) -> IndexOperationResult:
         await self._client.indices.delete(index=index_name)
-        return IndexOperationResult(operation="delete_index", ids=[index_name])
+        return IndexOperationResult(operation="delete_index")

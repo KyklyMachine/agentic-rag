@@ -10,6 +10,7 @@ from ..embeddings.dependency import EmbedderDep
 from .model import (
     Document,
     DocumentsSearchResult,
+    IndexInfo,
     IndexOperationResult,
     SearchParams,
     VectorSearchParam,
@@ -33,7 +34,7 @@ class VectorDBRepository(ABC):
     async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: ...
 
     @abstractmethod
-    async def get_indexes(self) -> list[str]: ...
+    async def get_indexes(self) -> list[IndexInfo]: ...
 
     @abstractmethod
     async def create_index(self, index_name: str) -> IndexOperationResult: ...

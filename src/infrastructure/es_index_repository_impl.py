@@ -8,6 +8,7 @@ from src.embeddings.dependency import EmbedderDep
 from src.index.model import (
     Document,
     DocumentsSearchResult,
+    IndexInfo,
     IndexOperationResult,
     SearchItem,
 )
@@ -111,9 +112,13 @@ class ESVectorDB(VectorDBRepository):
             await self._client.delete(index=index_name, id=str(doc_id))
         return IndexOperationResult(operation="delete_documents", ids=list(map(lambda x: str(x), documents_ids)))
 
-    async def get_indexes(self) -> list[str]:
-        indexes: list[str] = [idx['index'] for idx in await self._client.cat.indices(format="json")] # type: ignore
-        return indexes
+    async def get_indexes(self) -> list[IndexInfo]:
+        response = await self._client.cat.indices(format='json', h=['index', 'docs.count'])
+        indices: list[IndexInfo] = [
+            IndexInfo(name=item['index'], documents_count=int(item['docs.count'])) # type: ignore
+            for item in response
+        ]
+        return indices
 
     async def create_index(self, index_name: str) -> IndexOperationResult: 
         await self._client.indices.create(

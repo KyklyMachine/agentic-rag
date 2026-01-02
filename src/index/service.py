@@ -3,7 +3,7 @@ from uuid import UUID
 from ..embeddings.dependency import EmbedderDep
 from ..index.model import DocumentsSearchResult
 from .dependency import VectorDBDep
-from .model import Document, IndexOperationResult
+from .model import Document, IndexInfo, IndexOperationResult
 from .repository import SearchParamDep, VectorSearchParamDep
 
 # TODO: 6) привязать к индексу эмбеддер
@@ -11,7 +11,7 @@ from .repository import SearchParamDep, VectorSearchParamDep
 
 
 class IndexService:
-    async def get_indexes(self, vector_db: VectorDBDep) -> list[str]:
+    async def get_indexes(self, vector_db: VectorDBDep) -> list[IndexInfo]:
         return await vector_db.get_indexes()
     
     async def add_index(self, vector_db: VectorDBDep, index_name: str) -> IndexOperationResult:

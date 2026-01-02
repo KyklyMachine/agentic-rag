@@ -30,3 +30,7 @@ class IndexOperationResult(BaseModel):
     status: Literal["acknowledged"] = Field(default="acknowledged")
     operation: Literal["delete_index", "add_index", "delete_documents", "add_documents"]
     ids: list[str]
+
+class IndexInfo(BaseModel):
+    name: str
+    documents_count: int

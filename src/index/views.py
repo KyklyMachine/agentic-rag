@@ -11,21 +11,21 @@ from .exceptions import (
     ServiceUnavaliable,
     service_unavaliable_http_exception,
 )
-from .model import Document, IndexOperationResult
+from .model import Document, IndexInfo, IndexOperationResult
 from .repository import SearchParamDep, VectorSearchParamDep
 from .service import IndexService
 
-router = APIRouter(prefix="/index", tags=["index"])
+router = APIRouter(prefix="/indexes", tags=["indexes"])
 
 
-@router.get("/")
-async def get_indexes(vector_db: VectorDBDep) -> list[str]:
+@router.get("")
+async def get_indexes(vector_db: VectorDBDep) -> list[IndexInfo]:
     try:
         return await IndexService().get_indexes(vector_db=vector_db)
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
     
-@router.post("/")
+@router.post("")
 async def add_index(vector_db: VectorDBDep, index_name: str) -> IndexOperationResult:
     try:
         return await IndexService().add_index(vector_db, index_name)
@@ -53,7 +53,7 @@ async def search_documents(vector_db: VectorDBDep, search_params: VectorSearchPa
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
 
-@router.post("/{index_name}/document")
+@router.post("/{index_name}/documents")
 async def add_documents(vector_db: VectorDBDep, index_name: str, document: Document, embedder: EmbedderDep) -> IndexOperationResult:
     try:
         return await IndexService().add_documents(vector_db=vector_db, index_name=index_name, document=document, embedder=embedder)
@@ -62,7 +62,7 @@ async def add_documents(vector_db: VectorDBDep, index_name: str, document: Docum
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
 
-@router.delete("/{index_name}/document")
+@router.delete("/{index_name}/documents")
 async def delete_documents(vector_db: VectorDBDep, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult:
     try:
         return await IndexService().delete_documents(vector_db, index_name=index_name, documents_ids=documents_ids)

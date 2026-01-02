@@ -42,21 +42,29 @@ class ESVectorDB(VectorDBRepository):
             "k": search_params.limit,
             "num_candidates": 100
         }
+
+        body = {
+            "knn": knn_query
+        }
+
+        if not search_params.return_embeddings:
+            body["_source"] = {
+                "excludes": ["embedding"]
+            }
+        
         scored_points = await self._client.search(
             index=index_name,
-            body={
-                "knn": knn_query
-            }
+            body=body
         )
         search_items: list[SearchItem] = []
         for hit in scored_points["hits"]["hits"]:
-            item = hit["_source"]
+            source = hit["_source"]
             search_item = SearchItem(
                 score=hit["_score"],
                 document=Document(
-                    id=UUID(str(hit["_id"])),
-                    content=item["content"],
-                    embedding=item["embedding"],
+                    id=UUID(str(hit.get("_id", None))),
+                    content=source.get("content", None),
+                    embedding=source.get("embedding", None),
                     )
                 )
             search_items.append(search_item)

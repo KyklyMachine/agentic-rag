@@ -15,8 +15,8 @@ class SearchParams(BaseModel):
     return_embeddings: bool = Field(default=True)
 
 class VectorSearchParam(BaseModel):
-    offset: int = Field(ge=0, default=0)
     limit: int = Field(ge=0, le=100, default=4)
+    return_embeddings: bool = Field(default=True)
 
 class SearchItem(BaseModel):
     document: Document

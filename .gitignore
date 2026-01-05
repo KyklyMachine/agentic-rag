@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+runlist.txt
+.gitignore
+.DS_Store
+uv.lock
+CLAUDE.md
+.vscode

@@ -1,11 +1,12 @@
 from uuid import UUID
 
+import elastic_transport
 from elasticsearch import AsyncElasticsearch
 from pydantic import BaseModel
 
 from src.document.model import Metadata
 from src.embeddings.dependency import EmbedderDep
-from src.index.exceptions import InconsistentIndex
+from src.index.exceptions import InconsistentIndex, ServiceUnavaliable
 from src.index.model import (
     Document,
     DocumentsSearchResult,
@@ -53,11 +54,14 @@ class ESVectorDB(VectorDBRepository):
             body["_source"] = {
                 "excludes": ["embedding"]
             }
-        
-        scored_points = await self._client.search(
-            index=index_name,
-            body=body
-        )
+        try:
+            scored_points = await self._client.search(
+                index=index_name,
+                body=body
+            )
+        except elastic_transport.ConnectionError:
+            raise ServiceUnavaliable("Elasticsearch service is unavailable")
+
         search_items: list[SearchItem] = []
         for hit in scored_points["hits"]["hits"]:
             source = hit["_source"]
@@ -96,11 +100,14 @@ class ESVectorDB(VectorDBRepository):
             body["_source"] = {
                 "excludes": ["embedding"]
             }
-        
-        raw_documents = await self._client.search(
-            index=index_name,
-            body=body,
-        )
+        try:
+            raw_documents = await self._client.search(
+                index=index_name,
+                body=body,
+            )
+        except elastic_transport.ConnectionError:
+            raise ServiceUnavaliable("Elasticsearch service is unavailable")
+
         documents = []
         for hit in raw_documents["hits"]["hits"]:
             source = hit["_source"]
@@ -127,30 +134,45 @@ class ESVectorDB(VectorDBRepository):
         if not document.embedding:
             raise Exception()
 
-        await self._client.create(
-            index=index_name,
-            id=str(document.id),
-            body={
-                "title": document.title,
-                "context": document.context,
-                "content": document.content,
-                "embedding_text": document.embedding_text,
-                "embedding": document.embedding,
-                "metadata": {
-                    "source": document.metadata.source,
-                    "tags": document.metadata.tags
+        try:
+            await self._client.create(
+                index=index_name,
+                id=str(document.id),
+                body={
+                    "title": document.title,
+                    "context": document.context,
+                    "content": document.content,
+                    "embedding_text": document.embedding_text,
+                    "embedding": document.embedding,
+                    "metadata": {
+                        "source": document.metadata.source,
+                        "tags": document.metadata.tags
+                    }
                 }
-            }
-        )
+            )
+        except elastic_transport.ConnectionError:
+            raise ServiceUnavaliable("Elasticsearch service is unavailable")
+
         return IndexOperationResult(operation="add_documents")
 
     async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: 
+        errs = []
         for doc_id in documents_ids:
-            await self._client.delete(index=index_name, id=str(doc_id))
-        return IndexOperationResult(operation="delete_documents")
+            try:
+                await self._client.delete(index=index_name, id=str(doc_id))
+            except elastic_transport.ConnectionError:
+                errs.append(
+                        {
+                            doc_id: ServiceUnavaliable("Elasticsearch service is unavailable")
+                        }
+                    )
+        return IndexOperationResult(operation="delete_documents", errors={"error_docs": errs})
 
     async def get_indexes(self) -> list[IndexInfo]:
-        response = await self._client.cat.indices(format='json', h=['index', 'docs.count'])
+        try:
+            response = await self._client.cat.indices(format='json', h=['index', 'docs.count'])
+        except elastic_transport.ConnectionError:
+            raise ServiceUnavaliable("Elasticsearch service is unavailable")
         indices: list[IndexInfo] = [
             IndexInfo(name=item['index'], documents_count=int(item['docs.count'])) # type: ignore
             for item in response
@@ -158,77 +180,86 @@ class ESVectorDB(VectorDBRepository):
         return indices
 
     async def create_index(self, index_name: str) -> IndexOperationResult: 
-        await self._client.indices.create(
-            index=index_name,
-            body={
-                "settings": {
-                    "number_of_shards": 1,
-                    "number_of_replicas": 0,
-                    "analysis": {
-                        "analyzer": {
-                            "russian_custom": {
-                                "type": "custom",
-                                "tokenizer": "standard",
-                                "filter": [
-                                    "lowercase",
-                                    "russian_stop",
-                                    "russian_stemmer"
-                                ]
-                            }
+        body = {
+            "settings": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0,
+                "analysis": {
+                    "analyzer": {
+                        "russian_custom": {
+                            "type": "custom",
+                            "tokenizer": "standard",
+                            "filter": [
+                                "lowercase",
+                                "russian_stop",
+                                "russian_stemmer"
+                            ]
+                        }
+                    },
+                    "filter": {
+                        "russian_stop": {
+                            "type": "stop",
+                            "stopwords": "_russian_"
                         },
-                        "filter": {
-                            "russian_stop": {
-                                "type": "stop",
-                                "stopwords": "_russian_"
-                            },
-                            "russian_stemmer": {
-                                "type": "stemmer",
-                                "language": "russian"
-                            }
+                        "russian_stemmer": {
+                            "type": "stemmer",
+                            "language": "russian"
                         }
                     }
-                },
-                "mappings": {
-                    "properties": {
-                        "title": {
-                            "type": "text",
-                            "analyzer": "russian_custom"
-                        },
-                        "context": {
-                            "type": "text",
-                            "analyzer": "russian_custom"
-                        },
-                        "content": {
-                            "type": "text",
-                            "analyzer": "russian_custom"
-                        },
-                        "embedding_text": {
-                            "type": "text",
-                            "analyzer": "russian_custom",
-                            "index": False
-                        },
-                        "embedding": {
-                            "type": "dense_vector",
-                            "index": True,
-                            "similarity": "cosine"
-                        },
-                        "metadata": {
-                            "type": "object",
-                            "properties": {
-                                "source": {
-                                    "type": "keyword"
-                                },
-                                "tags": {
-                                    "type": "keyword"
-                                }
+                }
+            },
+            "mappings": {
+                "properties": {
+                    "title": {
+                        "type": "text",
+                        "analyzer": "russian_custom"
+                    },
+                    "context": {
+                        "type": "text",
+                        "analyzer": "russian_custom"
+                    },
+                    "content": {
+                        "type": "text",
+                        "analyzer": "russian_custom"
+                    },
+                    "embedding_text": {
+                        "type": "text",
+                        "analyzer": "russian_custom",
+                        "index": False
+                    },
+                    "embedding": {
+                        "type": "dense_vector",
+                        "index": True,
+                        "similarity": "cosine"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "properties": {
+                            "source": {
+                                "type": "keyword"
+                            },
+                            "tags": {
+                                "type": "keyword"
                             }
                         }
                     }
                 }
             }
-        )
+        }
+        try:
+            await self._client.indices.create(
+                index=index_name,
+                body=body
+            )
+        except elastic_transport.ConnectionError:
+            raise ServiceUnavaliable("Elasticsearch service is unavailable")
+
         return IndexOperationResult(operation="add_index")
 
     async def delete_index(self, index_name: str) -> IndexOperationResult:
-        await self._client.indices.delete(index=index_name)
+        try:
+            await self._client.indices.delete(index=index_name)
+        except elastic_transport.ConnectionError:
+            raise ServiceUnavaliable("Elasticsearch service is unavailable")
+
         return IndexOperationResult(operation="delete_index")

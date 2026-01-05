@@ -40,14 +40,14 @@ async def delete_index(vector_db: VectorDBDep, index_name: str) -> IndexOperatio
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
 
-@router.get("/{index_name}")
+@router.get("/{index_name}/documents")
 async def get_documents(vector_db: VectorDBDep, search_params: SearchParamDep, index_name: str) -> list[Document]:
     try:
         return await IndexService().get_documents(vector_db=vector_db, search_params=search_params, index_name=index_name)
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
     
-@router.post("/{index_name}/search")
+@router.post("/{index_name}/documents/search")
 async def search_documents(vector_db: VectorDBDep, search_params: VectorSearchParamDep, index_name: str, query: str, embedder: EmbedderDep) -> DocumentsSearchResult:
     try:
         return await IndexService().search_documents(vector_db=vector_db, search_params=search_params, index_name=index_name, query=query, embedder=embedder)

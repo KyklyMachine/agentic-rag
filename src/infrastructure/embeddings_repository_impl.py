@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, override
 
 from openai import OpenAI
 from openai.types.create_embedding_response import CreateEmbeddingResponse
@@ -12,11 +12,13 @@ from ..embeddings.repository import Embedder
 class QwenEmbedder(Embedder):
     _client: OpenAI
     def __init__(self) -> None:
+        super().__init__()
         self._client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=os.environ.get("OPENROUTER_TOKEN"),
             )
 
+    @override
     async def invoke(self, documents: list[Document], model_name: Optional[str]=None) -> list[Document]: 
         contents: list[str] = [document.content for document in documents]
         model = ""

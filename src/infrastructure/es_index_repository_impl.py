@@ -161,6 +161,7 @@ class ESVectorDB(VectorDBRepository):
 
         return IndexOperationResult(operation="add_documents")
 
+    @override
     async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: 
         errs: list[dict[Any, Any]] = []
         for doc_id in documents_ids:

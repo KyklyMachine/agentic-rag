@@ -35,7 +35,7 @@ class IndexService:
             try:
                 if not document.embedding:
                     document = (await embedder.invoke([document]))[0]
-                await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
+                _ = await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
             except Exception as e:
                 err_docs.append(document)
                 error_details.append({

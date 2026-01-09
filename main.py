@@ -2,13 +2,13 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
-from infrastructure.es_index_repository_impl import ESVectorDB
 
+from infrastructure.es_index_repository_impl import ESVectorDB
 from src.config import Config
 from src.infrastructure.embeddings_repository_impl import QwenEmbedder
 from src.router import router
 
-load_dotenv()
+_ = load_dotenv()
 
 config = Config()
 

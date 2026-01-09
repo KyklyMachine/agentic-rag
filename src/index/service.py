@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from ..embeddings.dependency import EmbedderDep
@@ -27,14 +28,14 @@ class IndexService:
         return await vector_db.search_documents(index_name=index_name, search_params=search_params, query=query, embedder=embedder)
     
     async def add_documents(self, vector_db: VectorDBDep, index_name: str, documents: list[Document], embedder: EmbedderDep) -> IndexOperationResult:
-        err_docs = []
-        error_details = []
+        err_docs: list[Document] = []
+        error_details: list[dict[Any, Any]] = []
 
         for document in documents:
             try:
                 if not document.embedding:
                     document = (await embedder.invoke([document]))[0]
-                await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
+                _ = await vector_db.add_documents(index_name=index_name, document=document, embedder=embedder)
             except Exception as e:
                 err_docs.append(document)
                 error_details.append({

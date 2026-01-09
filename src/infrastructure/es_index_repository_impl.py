@@ -2,12 +2,17 @@ from typing import Any, override
 from uuid import UUID
 
 import elastic_transport
+import elasticsearch
 from elasticsearch import AsyncElasticsearch
 from pydantic import BaseModel
 
 from src.document.model import Metadata
 from src.embeddings.dependency import EmbedderDep
-from src.index.exceptions import InconsistentIndex, ServiceUnavaliable
+from src.index.exceptions import (
+    InconsistentIndex,
+    IndexNotFoundException,
+    ServiceUnavaliable,
+)
 from src.index.model import (
     Document,
     DocumentsSearchResult,
@@ -65,6 +70,8 @@ class ESVectorDB(VectorDBRepository):
             )
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
+        except elasticsearch.NotFoundError:
+            raise IndexNotFoundException()
 
         search_items: list[SearchItem] = []
         for hit in scored_points["hits"]["hits"]:
@@ -112,6 +119,8 @@ class ESVectorDB(VectorDBRepository):
             )
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
+        except elasticsearch.NotFoundError:
+            raise IndexNotFoundException()
 
         documents: list[Document] = []
         for hit in raw_documents["hits"]["hits"]:
@@ -158,7 +167,8 @@ class ESVectorDB(VectorDBRepository):
             )
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
-
+        except elasticsearch.NotFoundError:
+            raise IndexNotFoundException()
         return IndexOperationResult(operation="add_documents")
 
     @override
@@ -166,13 +176,15 @@ class ESVectorDB(VectorDBRepository):
         errs: list[dict[Any, Any]] = []
         for doc_id in documents_ids:
             try:
-                _ = await self._client.delete(index=index_name, id=str(doc_id))
+                _: elastic_transport.ObjectApiResponse[Any] = await self._client.delete(index=index_name, id=str(doc_id))
             except elastic_transport.ConnectionError:
                 errs.append(
                         {
                             doc_id: ServiceUnavaliable("Elasticsearch service is unavailable")
                         }
                     )
+            except elasticsearch.NotFoundError:
+                raise IndexNotFoundException()
         return IndexOperationResult(operation="delete_documents", errors={"error_docs": errs})
 
     @override
@@ -181,6 +193,8 @@ class ESVectorDB(VectorDBRepository):
             response = await self._client.cat.indices(format='json', h=['index', 'docs.count'])
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
+        except elasticsearch.NotFoundError:
+            raise IndexNotFoundException()
         indices: list[IndexInfo] = [
             IndexInfo(name=item['index'], documents_count=int(item['docs.count'])) # type: ignore
             for item in response
@@ -262,7 +276,8 @@ class ESVectorDB(VectorDBRepository):
             )
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
-
+        except elasticsearch.NotFoundError:
+            raise IndexNotFoundException()
         return IndexOperationResult(operation="add_index")
 
     @override
@@ -271,5 +286,6 @@ class ESVectorDB(VectorDBRepository):
             _ = await self._client.indices.delete(index=index_name)
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
-
+        except elasticsearch.NotFoundError:
+            raise IndexNotFoundException()
         return IndexOperationResult(operation="delete_index")

@@ -1,5 +1,6 @@
-from typing import Any, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 from src.document.model import Document
@@ -36,3 +37,6 @@ class IndexOperationResult(BaseModel):
 class IndexInfo(BaseModel):
     name: str
     documents_count: int
+
+SearchParamDep = Annotated[SearchParams, Depends(SearchParams)]
+VectorSearchParamDep = Annotated[VectorSearchParam, Depends(VectorSearchParam)]

@@ -10,6 +10,7 @@ from .dependency import VectorDBDep
 from .dto import AddDocumentsRequest
 from .exceptions import (
     IndexIsNotExist,
+    IndexNotFoundException,
     ServiceUnavaliable,
     service_unavaliable_http_exception,
 )
@@ -78,6 +79,8 @@ async def delete_index(
         return await IndexService().delete_index(vector_db, index_name)
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
+    except IndexNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "index_not_found", "message": str(e)})
 
 @router.get(
     "/{index_name}/documents",
@@ -108,6 +111,8 @@ async def get_documents(
         )
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
+    except IndexNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "index_not_found", "message": str(e)})
 
 
 @router.post(
@@ -145,6 +150,8 @@ async def search_documents(
         )
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
+    except IndexNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "index_not_found", "message": str(e)})
 
 @router.post(
     "/{index_name}/documents",
@@ -232,3 +239,5 @@ async def delete_documents(
         )
     except ServiceUnavaliable:
         raise service_unavaliable_http_exception
+    except IndexNotFoundException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "index_not_found", "message": str(e)})

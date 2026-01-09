@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -30,8 +30,8 @@ class DocumentsSearchResult(BaseModel):
 class IndexOperationResult(BaseModel):
     status: Literal["acknowledged"] = Field(default="acknowledged")
     operation: Literal["delete_index", "add_index", "delete_documents", "add_documents"]
-    result_description: Optional[dict] = Field(default=None, description="Dictionary with result details")
-    errors: Optional[dict] = Field(default=None, description="Dictionary of errors, where key is document id and value is error message")
+    result_description: Optional[dict[Any, Any]] = Field(default=None, description="Dictionary with result details")
+    errors: Optional[dict[Any, Any]] = Field(default=None, description="Dictionary of errors, where key is document id and value is error message")
 
 class IndexInfo(BaseModel):
     name: str

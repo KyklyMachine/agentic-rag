@@ -1,3 +1,4 @@
+from typing import Any, override
 from uuid import UUID
 
 import elastic_transport
@@ -28,25 +29,28 @@ class ESVectorDBConfig(BaseModel):
 class ESVectorDB(VectorDBRepository):
     _client: AsyncElasticsearch
 
+    @override
     def __init__(self, config: ESVectorDBConfig) -> None:
+        super().__init__()
         self._client = AsyncElasticsearch(
             hosts=[config.host]
         )
 
+    @override
     async def search_documents(self, index_name: str, query: str, search_params: VectorSearchParamDep, embedder: EmbedderDep) -> DocumentsSearchResult: 
         embedded_document: Document = (await embedder.invoke([Document(content=query)]))[0]
         if not embedded_document.embedding: 
             raise Exception()
         query_embedding: list[float] = embedded_document.embedding
 
-        knn_query = {
+        knn_query: dict[str, Any] = {
             "field": "embedding",
             "query_vector": query_embedding,
             "k": search_params.limit,
             "num_candidates": 100
         }
 
-        body = {
+        body: dict[str, dict[str, Any]] = {
             "knn": knn_query
         }
 
@@ -87,9 +91,10 @@ class ESVectorDB(VectorDBRepository):
             search_items.append(search_item)
         return DocumentsSearchResult(index_name=index_name, search_params=search_params, items=search_items)
 
+    @override
     async def get_documents(self, index_name: str, search_params: SearchParamDep) -> list[Document]: 
         
-        body = {
+        body: dict[str, Any] = {
                 "query": {
                     "match_all": {}
                 },
@@ -108,7 +113,7 @@ class ESVectorDB(VectorDBRepository):
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
 
-        documents = []
+        documents: list[Document] = []
         for hit in raw_documents["hits"]["hits"]:
             source = hit["_source"]
             if "_id" not in hit:
@@ -130,12 +135,13 @@ class ESVectorDB(VectorDBRepository):
             )
         return documents
 
+    @override
     async def add_documents(self, index_name: str, document: Document, embedder: EmbedderDep) -> IndexOperationResult: 
         if not document.embedding:
             raise Exception()
 
         try:
-            await self._client.create(
+            _ = await self._client.create(
                 index=index_name,
                 id=str(document.id),
                 body={
@@ -156,10 +162,10 @@ class ESVectorDB(VectorDBRepository):
         return IndexOperationResult(operation="add_documents")
 
     async def delete_documents(self, index_name: str, documents_ids: list[UUID]) -> IndexOperationResult: 
-        errs = []
+        errs: list[dict[Any, Any]] = []
         for doc_id in documents_ids:
             try:
-                await self._client.delete(index=index_name, id=str(doc_id))
+                _ = await self._client.delete(index=index_name, id=str(doc_id))
             except elastic_transport.ConnectionError:
                 errs.append(
                         {
@@ -168,6 +174,7 @@ class ESVectorDB(VectorDBRepository):
                     )
         return IndexOperationResult(operation="delete_documents", errors={"error_docs": errs})
 
+    @override
     async def get_indexes(self) -> list[IndexInfo]:
         try:
             response = await self._client.cat.indices(format='json', h=['index', 'docs.count'])
@@ -179,8 +186,9 @@ class ESVectorDB(VectorDBRepository):
         ]
         return indices
 
+    @override
     async def create_index(self, index_name: str) -> IndexOperationResult: 
-        body = {
+        body: dict[str, Any] = {
             "settings": {
                 "number_of_shards": 1,
                 "number_of_replicas": 0,
@@ -247,7 +255,7 @@ class ESVectorDB(VectorDBRepository):
             }
         }
         try:
-            await self._client.indices.create(
+            _ = await self._client.indices.create(
                 index=index_name,
                 body=body
             )
@@ -256,9 +264,10 @@ class ESVectorDB(VectorDBRepository):
 
         return IndexOperationResult(operation="add_index")
 
+    @override
     async def delete_index(self, index_name: str) -> IndexOperationResult:
         try:
-            await self._client.indices.delete(index=index_name)
+            _ = await self._client.indices.delete(index=index_name)
         except elastic_transport.ConnectionError:
             raise ServiceUnavaliable("Elasticsearch service is unavailable")
 

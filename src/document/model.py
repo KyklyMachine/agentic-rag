@@ -24,7 +24,7 @@ class Document(BaseModel):
     def generate_embedding_text(self):
         """Автоматически формирует embedding_text из title, context и content"""
         if self.embedding_text is None:
-            parts = []
+            parts: list[str] = []
             if self.title:
                 parts.append(self.title)
             if self.context:

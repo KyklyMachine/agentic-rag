@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 
 from infrastructure.es_index_repository_impl import ESVectorDB
+from infrastructure.llm_repository_impl import OpenrouterLLM
 from src.config import Config
 from src.infrastructure.embeddings_repository_impl import QwenEmbedder
 from src.router import router
@@ -17,6 +18,7 @@ config = Config()
 async def lifespan(app: FastAPI):
     app.state.vector_db = ESVectorDB(config=config.vectordb)
     app.state.embedder = QwenEmbedder()
+    app.state.llm = OpenrouterLLM(config=config.llm_config)
     try:
         yield
     finally:

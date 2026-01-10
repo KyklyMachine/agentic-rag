@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Annotated
 from uuid import UUID
-
-from fastapi import Depends
 
 from ..embeddings.dependency import EmbedderDep
 
@@ -12,12 +9,9 @@ from .model import (
     DocumentsSearchResult,
     IndexInfo,
     IndexOperationResult,
-    SearchParams,
-    VectorSearchParam,
+    SearchParamDep,
+    VectorSearchParamDep,
 )
-
-SearchParamDep = Annotated[SearchParams, Depends(SearchParams)]
-VectorSearchParamDep = Annotated[VectorSearchParam, Depends(VectorSearchParam)]
 
 
 class VectorDBRepository(ABC):
